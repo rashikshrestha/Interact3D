@@ -137,8 +137,6 @@ def transform_obj(init_pos, init_cov, R, T):
         R: (3,3) List[torch.Tensor, (3,3)]
         T: (3,) torch.Tensor
     """
-    print("This is Transform Object")
-
     # Define bounding box: [xmin, ymin, zmin], [xmax, ymax, zmax]
     bbox_min = torch.tensor([-0.117, -0.05, -0.11])
     bbox_max = torch.tensor([0.114, 1.0, 0.11])
@@ -148,8 +146,6 @@ def transform_obj(init_pos, init_cov, R, T):
            (init_pos[:, 1] >= bbox_min[1]) & (init_pos[:, 1] <= bbox_max[1]) & \
            (init_pos[:, 2] >= bbox_min[2]) & (init_pos[:, 2] <= bbox_max[2])
     
-    print(R)
-    print(T)
     new_pos = apply_rotations(init_pos[mask], R)
     new_pos += T
     init_pos[mask] = new_pos
@@ -166,7 +162,6 @@ for i in tqdm(range(1000)):
     box_T_np = np.loadtxt(f"/home/rashik_shrestha/ws/PhysGaussian/box_poses/trans_{i:04d}.txt")
 
 
-
     box_R = [torch.as_tensor(box_R_np, dtype=torch.float32, device='cuda')]
     box_T = torch.as_tensor(box_T_np, dtype=torch.float32, device='cuda')
 
@@ -176,7 +171,7 @@ for i in tqdm(range(1000)):
         camera_view, gaussians, pipeline, background
     )
 
-    init_pos_new, init_cov_new = transform_obj(init_pos, init_cov, box_R, box_T)
+    init_pos_new, init_cov_new = transform_obj(torch.clone(init_pos), torch.clone(init_cov), box_R, box_T)
 
     rendering, raddi = rasterize(
         means3D=init_pos_new,
