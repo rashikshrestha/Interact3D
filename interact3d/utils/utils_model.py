@@ -17,6 +17,15 @@ def load_gaussian_model_from_ply(ply_path, sh_degree=3):
     gaussians.load_ply(ply_path)
     return gaussians
 
+def apply_opacity_filter(threshold, means3d, means2d, shs, opacities, covs3D):
+    mask = opacities[:, 0] > threshold
+    means3d = means3d[mask, :]
+    means2d = means2d[mask, :]
+    covs3D = covs3D[mask, :]
+    opacities = opacities[mask, :]
+    shs = shs[mask, :]
+    return means3d, means2d, shs, opacities, covs3D
+
 def get_camera_view(
     cam_path,
     default_camera_index=0,
