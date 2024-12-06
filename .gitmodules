@@ -1,0 +1,3 @@
+[submodule "submodules/PhysGaussian"]
+	path = submodules/PhysGaussian
+	url = https://github.com/XPandora/PhysGaussian.git
