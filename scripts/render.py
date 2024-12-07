@@ -8,7 +8,7 @@ from tqdm import tqdm
 from interact3d.utils.utils_model import load_gaussian_model_from_ply
 from interact3d.utils.utils_model import get_camera_view, apply_opacity_filter
 from interact3d.utils.utils_geometry import transform_obj
-from interact3d.utils.utils_io import get_obj_pose, save_torch_image
+from interact3d.utils.utils_io import get_obj_pose, save_torch_image, render_video
 
 #! Physgaussian Imports
 from utils.decode_param import decode_param_json
@@ -156,3 +156,6 @@ for i in tqdm(range(1000)):
 
     #! Save rendered image
     save_torch_image(rendering, f"{output_path}/rendered_{i:04d}.png")
+   
+#! Render video from images 
+render_video(output_path)
