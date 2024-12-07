@@ -42,3 +42,30 @@ class GroundingDINO():
             bounding_boxes.append([int(xmin), int(ymin), int(xmax), int(ymax)])
             
         return bounding_boxes
+    
+if __name__=='__main__':
+    from PIL import Image
+    import cv2
+    from interact3d.utils.utils_plot import plot_bounding_boxes
+    from sam import SAM
+
+    device = 'cuda' 
+    text_prompt = 'green box.'
+    img_path = '/home/rashik_shrestha/ws/Interact3D/temp/output/top_view.png'
+    gdino = GroundingDINO(device, text_prompt, box_th=0.3, text_th=0.3)
+    sam = SAM(device)
+    
+    #! Read image
+    img_pil = Image.open(img_path) # PIL (RGB)
+    img_cv = np.array(img_pil) # OpenCV RGB
+    img_cv = cv2.cvtColor(img_cv, cv2.COLOR_RGB2BGR) # OpenCV BGR
+    
+    #! Detection
+    bb_dino = gdino.detect(img_cv)
+    img_det = plot_bounding_boxes(img_cv.copy(), bb_dino)
+    
+    cv2.imwrite('green.png', img_det)
+   
+    mask = sam.get_segmentation_mask(img_pil, bb_dino)
+    cv2.imwrite('mask.png', mask) 
+    
