@@ -36,6 +36,8 @@ Train a Gaussain Splatting Model:
 ns-train splatfacto --data $WORKSPACE/colmap --output-dir $WORKSPACE/gaussian_splats
 ```
 
+Save the ply file at: `$WORKSPACE/gaussian.ply`
+
 # Step 3: Point Cloud Alignment
 
 
@@ -54,9 +56,24 @@ Here, **ply file** is the output ply from the Gaussian Splatting reconstruction 
 
 Now, the point cloud needs to be segmented and separated. Here, we detect an object of interest and segment out its 3D points, all the rest points are considered as background points.
 
+Get Top view render of the scene.
+```bash
+python scripts/render.py --ply /path/to/ply/file --mode=topview
+```
+
+Align the Rendered Top View to Actual Point Cloud
+```bash
+python interact3d/pointcloud/image_to_point_align.py --ply /path/to/ply/file
+```
+
+Generate Point cloud segmentation
+```bash
+python interact3d/pointcloud/segmenter.py --ply /path/to/ply/file
+```
+
+# Step 5: Interaction
 
 
+# Step 6: Render Frames
 
-
-
-
+Now, you can render frames 
