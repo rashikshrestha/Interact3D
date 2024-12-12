@@ -1,14 +1,27 @@
+import os
+from pathlib import Path
 import plyfile
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
 from scipy.spatial.transform import Rotation as R
+import argparse
 
-#! Interact3D imports
-from interact3d.utils.utils_plot import plot_point_cloud
+from plot_point_cloud import plot_point_cloud
+
+#! Argparse
+parser = argparse.ArgumentParser(description="Point Cloud Pre-Processor")
+
+parser.add_argument(
+    "--ply", 
+    type=str, 
+    help="Path to PLY file"
+)
+
+args = parser.parse_args()
 
 #! Read Data
-with open("splat.ply", "rb") as f:
+with open(args.ply, "rb") as f:
     ply_data = plyfile.PlyData.read(f)
    
 vertex_data = ply_data["vertex"]
@@ -27,25 +40,26 @@ points = np.array([x,y,z])
 colors = np.array([r,g,b])
 
 
-#! --- Initial rot and trans ---
-euler_angles = np.array([0.0,0.0,0.0])
-trans = np.array([0.0,0.0,0.0])
+#! Initial Rot and Trans
+initial_transform_path = Path(os.getenv('WORKSPACE'))/'align_rt.txt'
+if initial_transform_path.exists():
+    print(f"Loading Transforms from: {initial_transform_path}")
+    initial_transforms = np.loadtxt(initial_transform_path)
+    euler_angles = initial_transforms[:3]
+    trans = initial_transforms[3:]
+else:
+    print("Using Null Transforms (0,0,0)")
+    euler_angles = np.array([0.0, 0.0, 0.0])
+    trans = np.array([0.0, 0.0, 0.0])
 
-# euler_angles = np.array([-7.5, 0.,-50.6])
-# trans = np.array([-0.069, -0.088, 0.449])
-
-euler_angles = np.array([82.3, -39.6, 180.3])
-trans = np.array([-0.088, 0.45, -0.067])
-
+#! Initial Delta Rot and Trans
 delta_trans = 0.1
 delta_rot = 1
-#! -----------------------------
 
 def euler_to_rotmat(euler_angles):
     rotation = R.from_euler('xyz', np.deg2rad(euler_angles))
     rot_mat = rotation.as_matrix()
     return rot_mat
-
 
 #! Subsample points
 downsample_points = 10000
@@ -65,38 +79,12 @@ points_copy = points.copy()
 rot_mat = euler_to_rotmat(euler_angles)
 points_copy = rot_mat@points_copy+trans.reshape(3,1)
 plot_point_cloud(points_copy, colors, ax[0], ax[1], ax[2])
-
-
-#! Filter points and plot and save
-# filterd_points = []
-# filtered_colors = []
-# for pp,cc in zip(points_copy.T,colors.T):
-#     x,y,z = pp
-#     if z>-0.11 and z < 0.11 and x>-0.117 and x<0.114 and y>0:
-#         filterd_points.append(pp)
-#         filtered_colors.append(cc)
-#     # else:
-#     #     if y<0:
-#     #         filterd_points.append(pp)
-#     #         filtered_colors.append(cc)
-
-
-# filterd_points = np.array(filterd_points).T
-# filtered_colors = np.array(filtered_colors).T
-
-# np.savetxt('points.txt', filterd_points.T)
-
-# plot_point_cloud(filterd_points, filtered_colors, ax[0], ax[1], ax[2])
-
-# fig.canvas.manager.set_window_title("Point Cloud Pre-Processor")
-
-# plt.show()
-# exit()
-    
+fig.canvas.manager.set_window_title("Point Cloud Pre-Processor")
 
 
 #! Button
 move_x_positive_ax = plt.axes([0.2, 0.15, 0.02, 0.05])
+move_x_positive_ax.text(-1.5, 0.0, 'Trans:', fontsize=12, color='black')
 move_x_positive_button = Button(move_x_positive_ax, '+X', color='lightblue', hovercolor='0.975')
 def move_x_positive(event):
     trans[0] += delta_trans
@@ -164,6 +152,7 @@ move_z_negative_button.on_clicked(move_z_negative)
 
 #! Buttons for Rotation
 rotate_x_positive_ax = plt.axes([0.3, 0.15, 0.02, 0.05])
+rotate_x_positive_ax.text(-1.0, 0.0, 'Rot:', fontsize=12, color='black')
 rotate_x_positive_button = Button(rotate_x_positive_ax, '+X', color='lightblue', hovercolor='0.975')
 def rotate_x_positive(event):
     euler_angles[0] += delta_rot
@@ -273,8 +262,17 @@ def printinfo(event):
     print(rot_mat)
     print(f"Trans: {trans}")
 print_info_button.on_clicked(printinfo)
-    
 
+#! Save button
+saveinfo_ax = plt.axes([0.58, 0.15, 0.05, 0.05])
+save_info_button = Button(saveinfo_ax, 'Save Rt', color='lightblue', hovercolor='0.975')
+def saveinfo(event):
+    Rt_to_save = np.hstack((euler_angles, trans))
+    save_path = Path(os.getenv('WORKSPACE'))/'align_rt.txt' 
+    np.savetxt(save_path, Rt_to_save)
+    print(f"\nAlignment Rt saved to: {save_path}")
+save_info_button.on_clicked(saveinfo)
+    
 
 #! Print Info
 print(f"Delta Trans: {delta_trans}, Delta Rot: {delta_rot}")
