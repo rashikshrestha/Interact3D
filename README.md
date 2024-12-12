@@ -68,14 +68,16 @@ python interact3d/pointcloud/image_to_point_align.py --ply /path/to/ply/file
 
 Generate Point cloud segmentation
 ```bash
-python interact3d/pointcloud/segmenter.py --ply /path/to/ply/file
+python interact3d/pointcloud/segmenter.py --prompt object_description
 ```
 
 # Step 5: Interaction
 
-Extract the Points for object of interest.
+Here you can interact with the object. For now you can pick up the object and place it any point in 3d space, then rotate the body as well. Then drop the object from that pose.
+
+For example to pick up the object to location (0.1,0.3,1.0) and rotate it by (15,30,45) degrees, use following command:
 ```bash
-python 
+python interact3d/simulation/simulate.py -x=0.1 -y=0.3 -z=1.0 -r=15 -p=30 -y=45
 ```
 
 # Step 6: Render Frames
