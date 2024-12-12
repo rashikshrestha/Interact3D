@@ -73,6 +73,10 @@ python interact3d/pointcloud/segmenter.py --ply /path/to/ply/file
 
 # Step 5: Interaction
 
+Extract the Points for object of interest.
+```bash
+python 
+```
 
 # Step 6: Render Frames
 
