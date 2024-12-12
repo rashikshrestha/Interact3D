@@ -12,13 +12,18 @@ from interact3d.utils.utils_io import read_ply
 from interact3d.utils.utils_conversion import euler_to_rotmat
 
 #! Argparse
-parser = argparse.ArgumentParser(description="Point Cloud Pre-Processor")
+parser = argparse.ArgumentParser(description="Point Cloud Segmenter")
+parser.add_argument(
+    "--prompt", 
+    type=str, 
+    help="Object Description"
+)
 args = parser.parse_args()
 
 #! Params
 device = 'cuda' 
 ws = Path(os.getenv('WORKSPACE'))
-text_prompt = 'green box.'
+text_prompt = args.prompt+'.'
 
 #! Read ply
 points, colors = read_ply(ws/'gaussians.ply')
@@ -90,7 +95,23 @@ xmax += z.min()
 ymin += x.min()
 ymax += x.min()
 
+pc_z_min, pc_z_max = xmin, xmax
+pc_x_min, pc_x_max = ymin, ymax
+pc_y_min, pc_y_max = 0.0, 1.0
 
 pc_bb = np.array([xmin, ymin, xmax, ymax])
-
 np.savetxt(ws/'bbox.txt', pc_bb)
+
+#! Segment Object Points
+filterd_points = []
+filtered_colors = []
+for pp,cc in zip(points.T,colors.T):
+    x,y,z = pp
+    if z>pc_z_min and z < pc_z_max and x>pc_x_min and x<pc_x_max and y>pc_y_min:
+        filterd_points.append(pp)
+        filtered_colors.append(cc)
+
+filterd_points = np.array(filterd_points).T
+filtered_colors = np.array(filtered_colors).T
+
+np.savetxt(ws/'object_points.txt', filterd_points.T)
