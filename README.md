@@ -1,5 +1,4 @@
-# Interact3D
-Interactive 3D Scene Modeling using Image-Based 3D Gaussian Splatting
+# Interact3D: Interactive 3D Scene Modeling using Image-Based 3D Gaussian Splatting
 
 # Environment Setup
 
@@ -39,9 +38,22 @@ ns-train splatfacto --data $WORKSPACE/colmap --output-dir $WORKSPACE/gaussian_sp
 
 # Step 3: Point Cloud Alignment
 
-![Point Cloud Alignment tool](media/point_cloud_pre_processor.png)
 
 The Gaussian Splat model can have weird orientation, which may not be idea to perform interactive actions. Hence, you need to align the point cloud so that flat ground surface faces exactly to +Y axis direction. Moreover, place all the ground floor elements below Y=0 plane. You can use our Point Cloud Pre-Processor tool for this task.
+
+
+```bash
+python interact3d/pointcloud/preprocessor.py --ply /path/to/ply/file
+```
+
+Here, **ply file** is the output ply from the Gaussian Splatting reconstruction from step 2.
+
+![Point Cloud Alignment tool](media/point_cloud_pre_processor.png)
+
+# Step 4: Point Cloud Segmentation
+
+Now, the point cloud needs to be segmented and separated. Here, we detect an object of interest and segment out its 3D points, all the rest points are considered as background points.
+
 
 
 
