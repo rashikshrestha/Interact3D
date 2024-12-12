@@ -1,8 +1,10 @@
 import torch
 torch.set_printoptions(sci_mode=False, precision=6)
-import cv2
-import numpy as np
 from tqdm import tqdm
+import argparse
+import os
+from pathlib import Path
+import numpy as np
 
 #! Interact3d Imports
 from interact3d.utils.utils_model import load_gaussian_model_from_ply
@@ -17,12 +19,42 @@ from utils.transformation_utils import get_center_view_worldspace_and_observant_
 from utils.transformation_utils import transform2origin, generate_rotation_matrices
 from utils.transformation_utils import apply_rotations, apply_cov_rotations
 
+#! Argparse
+parser = argparse.ArgumentParser(description="Render Images from Gaussian SPlats")
+
+parser.add_argument(
+    "--ply", 
+    type=str, 
+    help="Path to Gaussian Splts PLY file"
+)
+
+parser.add_argument(
+    "--mode", 
+    type=str, 
+    help="video | topview"
+)
+
+args = parser.parse_args()
+
+#! Paths
+ws = Path(os.getenv('WORKSPACE'))
+
+if args.mode == 'video':
+    output_path = ws/'frames'
+    output_path.mkdir(exist_ok=True, parents=True)
+
+if args.mode == 'video':
+    config_path = 'config/video_render_config.json'
+elif args.mode == 'topview':
+    config_path = 'config/top_view_config.json'
+    
+cameras_path = 'config/cameras.json'
+
+if args.mode == 'video':
+    obj_poses_path = ws/'poses'
+
+
 #! Parameters
-ply_path = '/home/rashik_shrestha/ws/Interact3D/temp/splat_cropped.ply'
-output_path = '/home/rashik_shrestha/ws/Interact3D/temp/frames'
-config_path = '/home/rashik_shrestha/ws/Interact3D/temp/test_config.json'
-cameras_path = '/home/rashik_shrestha/ws/Interact3D/temp/cameras.json'
-obj_poses_path = '/home/rashik_shrestha/ws/PhysGaussian/box_poses'
 DEVICE = 'cuda'
 
 class PipelineParamsNoparse:
@@ -45,7 +77,7 @@ print("Loading scene config...")
 ) = decode_param_json(config_path)
 
 #! Gaussian Model
-gaussians = load_gaussian_model_from_ply(ply_path)
+gaussians = load_gaussian_model_from_ply(args.ply)
 pipeline = PipelineParamsNoparse() # has 3 params: convert_SH_py, compute_Cov_py, debug
 pipeline.compute_cov3D_python = True
 
@@ -62,7 +94,6 @@ init_cov = params["cov3D_precomp"]
 init_opacity = params["opacity"]
 init_shs = params["shs"]
 print(f"Total Gaussians: {init_pos.shape[0]}")
-# print(init_pos.shape, init_screen_points.shape, init_shs.shape, init_cov.shape, init_opacity.shape)
 
 #! Filter out gaussians less than given opacity threshold
 init_pos, init_screen_points, init_shs, init_opacity, init_cov = apply_opacity_filter(
@@ -76,13 +107,18 @@ init_pos, init_screen_points, init_shs, init_opacity, init_cov = apply_opacity_f
 print(f"Gaussians after opacity filter: {init_pos.shape[0]}")
 
 #! Rotate and Tranlate the gaussians here
+pc_transform_pth = ws/'align_rt.txt'
+pc_transform = np.loadtxt(pc_transform_pth)
+rot_np, trans_np = pc_transform[:3], pc_transform[3:]
+
 gaussian_rotation_matrices = generate_rotation_matrices(
-    torch.tensor([82.3, -39.6, 180.3]),
+    torch.as_tensor([rot_np[0], rot_np[1], rot_np[2]], dtype=torch.float32),
     [0,1,2],
 )
 init_pos = apply_rotations(init_pos, gaussian_rotation_matrices)
 init_cov = apply_cov_rotations(init_cov, gaussian_rotation_matrices)
-trans_vec = torch.tensor([-0.088, 0.45, -0.067]).to('cuda')
+
+trans_vec = torch.as_tensor(trans_np, device='cuda')
 init_pos += trans_vec
 
 #! Get Camera
@@ -112,9 +148,14 @@ mpm_space_vertical_upward_axis = (
     scale_origin,
     original_mean_pos,
 )
+
+if args.mode == 'video':
+    no_of_frames = 1000
+else:
+    no_of_frames = 1
     
 
-for i in tqdm(range(1000)):
+for i in tqdm(range(no_of_frames)):
     frame_number = i
     camera_view = get_camera_view(
         cameras_path,
@@ -131,17 +172,20 @@ for i in tqdm(range(1000)):
         delta_e=camera_params["delta_e"],
         delta_r=camera_params["delta_r"],
     ) 
-    
-    box_R, box_T = get_obj_pose(obj_poses_path, i, DEVICE)
+   
 
-
-    #! Rasterize
+    #! Initialize Rasterizer
     rasterize = initialize_resterize(
         camera_view, gaussians, pipeline, background
     )
+    
+    if args.mode == 'video':
+        box_R, box_T = get_obj_pose(obj_poses_path, i, DEVICE)
+        init_pos_new, init_cov_new = transform_obj(torch.clone(init_pos), torch.clone(init_cov), box_R, box_T)
+    else:
+        init_pos_new, init_cov_new = init_pos, init_cov
 
-    init_pos_new, init_cov_new = transform_obj(torch.clone(init_pos), torch.clone(init_cov), box_R, box_T)
-
+    #! Rasterize
     rendering, raddi = rasterize(
         means3D=init_pos_new,
         means2D=init_screen_points,
@@ -155,7 +199,12 @@ for i in tqdm(range(1000)):
 
 
     #! Save rendered image
-    save_torch_image(rendering, f"{output_path}/rendered_{i:04d}.png")
-   
+    if args.mode == 'video':
+        save_torch_image(rendering, f"{output_path}/rendered_{i:04d}.png")
+    else:
+        save_torch_image(rendering, str(ws/'topview.png'))
+       
+ 
 #! Render video from images 
-render_video(output_path)
+if args.mode == 'video':
+    render_video(output_path)
