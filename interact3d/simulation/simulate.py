@@ -51,7 +51,7 @@ if __name__=='__main__':
     args = parser.parse_args()
     
     ws = Path(os.getenv('WORKSPACE'))
-    output_dir = ws/'object_poses'
+    output_dir = ws/'poses'
     output_dir.mkdir(exist_ok=True, parents=True)
     
     #! Add body without rotating
