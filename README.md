@@ -3,7 +3,8 @@
 # Environment Setup
 
 ```bash
-conda activation scripts here
+conda env create -f environment.yml
+conda activate interact3d
 ```
 
 This project deals with multiple files. So, we suggest to make a separate empty workspace directory to put everything in.
