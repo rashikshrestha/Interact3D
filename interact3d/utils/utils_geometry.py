@@ -1,7 +1,8 @@
 import torch
 from utils.transformation_utils import apply_rotations, apply_cov_rotations
 import numpy as np
-
+import os
+from pathlib import Path
 
 def transform_obj(init_pos, init_cov, R, T):
     """
@@ -11,14 +12,22 @@ def transform_obj(init_pos, init_cov, R, T):
         R: (3,3) List[torch.Tensor, (3,3)] Rotation Matrix
         T: (3,) torch.Tensor, Translation Vector
     """
-    #! Bounding box for goodday
+    ws = Path(os.getenv('WORKSPACE'))
+    
+    #! Bounding box
     # Define bounding box: [xmin, ymin, zmin], [xmax, ymax, zmax]
+    bbox = np.loadtxt(ws/'bbox.txt')
+    zmin, xmin, zmax, xmax = bbox
+    ymin, ymax = 0.0, 1.0
+    bbox_min = torch.tensor([xmin, ymin, zmin])
+    bbox_max = torch.tensor([xmax, ymax, zmax])
+   
+    # gooday 
     # bbox_min = torch.tensor([-0.117, -0.05, -0.11])
     # bbox_max = torch.tensor([0.114, 1.0, 0.11])
-    
-    #! Bounding box for tennis
-    bbox_min = torch.tensor([-0.117, -0.00, -0.1])
-    bbox_max = torch.tensor([0.114, 1.0, 0.0])
+    # tennis
+    # bbox_min = torch.tensor([-0.117, -0.00, -0.1])
+    # bbox_max = torch.tensor([0.114, 1.0, 0.0])
 
     # Create a mask to select points within the bounding box
     mask = (init_pos[:, 0] >= bbox_min[0]) & (init_pos[:, 0] <= bbox_max[0]) & \
