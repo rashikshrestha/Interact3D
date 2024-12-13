@@ -82,4 +82,10 @@ python interact3d/simulation/simulate.py -x=0.1 -y=0.3 -z=1.0 -r=15 -p=30 -y=45
 
 # Step 6: Render Frames
 
-Now, you can render frames 
+Now, you can render frames to create high feidility Gaussian Splatting rendering of interacted object
+```bash
+python scripts/render.py --ply /path/to/ply/file --mode=video
+```
+You will get final output at `$WORKSPACE/frames/output.mp4`
+
+![](media/goodday_falling.gif) ![](media/tennisball_drop_gs_full.gif)
